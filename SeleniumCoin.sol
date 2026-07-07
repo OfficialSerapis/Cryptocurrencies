@@ -4,8 +4,8 @@ pragma solidity ^0.8.20;
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 
-contract ElectrumCoin is ERC20, Ownable {
-    constructor(address initialOwner, uint256 initialSupply) ERC20("Electrum Coin", "ELC") Ownable(initialOwner) {
+contract SeleniumCoin is ERC20, Ownable {
+    constructor(address initialOwner, uint256 initialSupply) ERC20("Selenium Coin", "SELC") Ownable(initialOwner) {
         _mint(msg.sender, initialSupply);
     }
 
