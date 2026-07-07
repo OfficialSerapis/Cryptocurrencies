@@ -1,0 +1,16 @@
+[
+  {
+    "id": 1,
+    "name": "Crypto T-Shirt",
+    "description": "A stylish t-shirt you can buy with SLC or ELC.",
+    "priceSLC": 10,
+    "priceELC": 5
+  },
+  {
+    "id": 2,
+    "name": "Crypto Mug",
+    "description": "A mug for your crypto coffee.",
+    "priceSLC": 3,
+    "priceELC": 2
+  }
+]
