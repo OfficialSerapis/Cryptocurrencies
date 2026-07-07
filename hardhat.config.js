@@ -1,11 +1,22 @@
-﻿require("@nomicfoundation/hardhat-toolbox");
+require('@nomicfoundation/hardhat-toolbox');
+require('dotenv').config();
 
+/** @type import('hardhat/config').HardhatUserConfig */
 module.exports = {
-  solidity: "0.8.17",
+  solidity: '0.8.20',
   networks: {
-    holesky: {
-      url: process.env.HOLESKY_RPC_URL || "https://rpc.holesky.ethpandaops.io",
-      accounts: process.env.PRIVATE_KEY ? [process.env.PRIVATE_KEY] : [],
+    hardhat: {},
+    localhost: {
+      url: "http://127.0.0.1:8545"
+    },
+    mainnet: {
+      url: `https://mainnet.infura.io/v3/${process.env.INFURA_KEY}`,
+      accounts: [process.env.WALLET_PRIVATE_KEY]
     }
+  },
+  paths: {
+    sources: './contracts',
+    cache: './cache',
+    artifacts: './artifacts'
   }
 };
