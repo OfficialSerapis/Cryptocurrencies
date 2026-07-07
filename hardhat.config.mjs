@@ -1,7 +1,8 @@
-﻿require("@nomicfoundation/hardhat-toolbox");
-require("@typechain/hardhat");
+import { HardhatUserConfig } from "hardhat/config";
+import "@nomicfoundation/hardhat-toolbox";
+import "@typechain/hardhat";
 
-module.exports = {
+const config = {
   solidity: "0.8.17",
   typechain: {
     outDir: "typechain-types",
@@ -17,3 +18,5 @@ module.exports = {
     }
   }
 };
+
+export default config;
