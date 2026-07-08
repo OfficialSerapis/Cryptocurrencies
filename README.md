@@ -1,46 +1,139 @@
-# Getting Started with Create React App
+# quick-lru [![Build Status](https://travis-ci.org/sindresorhus/quick-lru.svg?branch=master)](https://travis-ci.org/sindresorhus/quick-lru) [![Coverage Status](https://coveralls.io/repos/github/sindresorhus/quick-lru/badge.svg?branch=master)](https://coveralls.io/github/sindresorhus/quick-lru?branch=master)
 
-This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
+> Simple [“Least Recently Used” (LRU) cache](https://en.m.wikipedia.org/wiki/Cache_replacement_policies#Least_Recently_Used_.28LRU.29)
 
-## Available Scripts
+Useful when you need to cache something and limit memory usage.
 
-In the project directory, you can run:
+Inspired by the [`hashlru` algorithm](https://github.com/dominictarr/hashlru#algorithm), but instead uses [`Map`](https://developer.mozilla.org/en/docs/Web/JavaScript/Reference/Global_Objects/Map) to support keys of any type, not just strings, and values can be `undefined`.
 
-### `npm start`
+## Install
 
-Runs the app in the development mode.\
-Open [http://localhost:3000](http://localhost:3000) to view it in the browser.
+```
+$ npm install quick-lru
+```
 
-The page will reload if you make edits.\
-You will also see any lint errors in the console.
+## Usage
 
-### `npm test`
+```js
+const QuickLRU = require('quick-lru');
 
-Launches the test runner in the interactive watch mode.\
-See the section about [running tests](https://facebook.github.io/create-react-app/docs/running-tests) for more information.
+const lru = new QuickLRU({maxSize: 1000});
 
-### `npm run build`
+lru.set('🦄', '🌈');
 
-Builds the app for production to the `build` folder.\
-It correctly bundles React in production mode and optimizes the build for the best performance.
+lru.has('🦄');
+//=> true
 
-The build is minified and the filenames include the hashes.\
-Your app is ready to be deployed!
+lru.get('🦄');
+//=> '🌈'
+```
 
-See the section about [deployment](https://facebook.github.io/create-react-app/docs/deployment) for more information.
+## API
 
-### `npm run eject`
+### new QuickLRU(options?)
 
-**Note: this is a one-way operation. Once you `eject`, you can’t go back!**
+Returns a new instance.
 
-If you aren’t satisfied with the build tool and configuration choices, you can `eject` at any time. This command will remove the single build dependency from your project.
+### options
 
-Instead, it will copy all the configuration files and the transitive dependencies (webpack, Babel, ESLint, etc) right into your project so you have full control over them. All of the commands except `eject` will still work, but they will point to the copied scripts so you can tweak them. At this point you’re on your own.
+Type: `object`
 
-You don’t have to ever use `eject`. The curated feature set is suitable for small and middle deployments, and you shouldn’t feel obligated to use this feature. However we understand that this tool wouldn’t be useful if you couldn’t customize it when you are ready for it.
+#### maxSize
 
-## Learn More
+*Required*\
+Type: `number`
 
-You can learn more in the [Create React App documentation](https://facebook.github.io/create-react-app/docs/getting-started).
+The maximum number of items before evicting the least recently used items.
 
-To learn React, check out the [React documentation](https://reactjs.org/).
+#### maxAge
+
+Type: `number`\
+Default: `Infinity`
+
+The maximum number of milliseconds an item should remain in cache.
+By default maxAge will be Infinity, which means that items will never expire.
+
+Lazy expiration happens upon the next `write` or `read` call.
+
+Individual expiration of an item can be specified by the `set(key, value, options)` method.
+
+#### onEviction
+
+*Optional*\
+Type: `(key, value) => void`
+
+Called right before an item is evicted from the cache.
+
+Useful for side effects or for items like object URLs that need explicit cleanup (`revokeObjectURL`).
+
+### Instance
+
+The instance is [`iterable`](https://developer.mozilla.org/en/docs/Web/JavaScript/Reference/Iteration_protocols) so you can use it directly in a [`for…of`](https://developer.mozilla.org/en/docs/Web/JavaScript/Reference/Statements/for...of) loop.
+
+Both `key` and `value` can be of any type.
+
+#### .set(key, value, options?)
+
+Set an item. Returns the instance.
+
+Individual expiration of an item can be specified with the `maxAge` option. If not specified, the global `maxAge` value will be used in case it is specified on the constructor, otherwise the item will never expire.
+
+#### .get(key)
+
+Get an item.
+
+#### .has(key)
+
+Check if an item exists.
+
+#### .peek(key)
+
+Get an item without marking it as recently used.
+
+#### .delete(key)
+
+Delete an item.
+
+Returns `true` if the item is removed or `false` if the item doesn't exist.
+
+#### .clear()
+
+Delete all items.
+
+#### .resize(maxSize)
+
+Update the `maxSize`, discarding items as necessary. Insertion order is mostly preserved, though this is not a strong guarantee.
+
+Useful for on-the-fly tuning of cache sizes in live systems.
+
+#### .keys()
+
+Iterable for all the keys.
+
+#### .values()
+
+Iterable for all the values.
+
+#### .entriesAscending()
+
+Iterable for all entries, starting with the oldest (ascending in recency).
+
+#### .entriesDescending()
+
+Iterable for all entries, starting with the newest (descending in recency).
+
+#### .size
+
+The stored item count.
+
+---
+
+<div align="center">
+	<b>
+		<a href="https://tidelift.com/subscription/pkg/npm-quick-lru?utm_source=npm-quick-lru&utm_medium=referral&utm_campaign=readme">Get professional support for this package with a Tidelift subscription</a>
+	</b>
+	<br>
+	<sub>
+		Tidelift helps make open source sustainable for maintainers while giving companies<br>assurances about security, maintenance, and licensing for their dependencies.
+	</sub>
+</div>

@@ -8,9 +8,7 @@ contract SeleniumCoin is ERC20, Ownable {
     constructor(address initialOwner) 
         ERC20("Selenium Coin", "SELC") 
         Ownable(initialOwner) 
-    {
-        // Initial supply can be 0 or small - owner can mint more
-    }
+    {}
 
     function mint(address to, uint256 amount) public onlyOwner {
         _mint(to, amount);

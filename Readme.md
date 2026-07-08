@@ -1,327 +1,139 @@
-# @adobe/css-tools
+# quick-lru [![Build Status](https://travis-ci.org/sindresorhus/quick-lru.svg?branch=master)](https://travis-ci.org/sindresorhus/quick-lru) [![Coverage Status](https://coveralls.io/repos/github/sindresorhus/quick-lru/badge.svg?branch=master)](https://coveralls.io/github/sindresorhus/quick-lru?branch=master)
 
-> This is a fork of the npm css package due to low maintenance
+> Simple [“Least Recently Used” (LRU) cache](https://en.m.wikipedia.org/wiki/Cache_replacement_policies#Least_Recently_Used_.28LRU.29)
 
-CSS parser / stringifier.
+Useful when you need to cache something and limit memory usage.
 
-## Installation
+Inspired by the [`hashlru` algorithm](https://github.com/dominictarr/hashlru#algorithm), but instead uses [`Map`](https://developer.mozilla.org/en/docs/Web/JavaScript/Reference/Global_Objects/Map) to support keys of any type, not just strings, and values can be `undefined`.
 
-    $ npm install @adobe/css-tools
+## Install
+
+```
+$ npm install quick-lru
+```
 
 ## Usage
 
 ```js
-import { parse, stringify } from '@adobe/css-tools'
-let obj = parse('body { font-size: 12px; }', options);
-let css = stringify(obj, options);
+const QuickLRU = require('quick-lru');
+
+const lru = new QuickLRU({maxSize: 1000});
+
+lru.set('🦄', '🌈');
+
+lru.has('🦄');
+//=> true
+
+lru.get('🦄');
+//=> '🌈'
 ```
 
 ## API
 
-### parse(code, [options])
+### new QuickLRU(options?)
 
-Accepts a CSS string and returns an AST `object`.
+Returns a new instance.
 
-`options`:
+### options
 
-- silent: silently fail on parse errors.
-- source: the path to the file containing `css`. Makes errors and source
-  maps more helpful, by letting them know where code comes from.
+Type: `object`
 
-### stringify(object, [options])
+#### maxSize
 
-Accepts an AST `object` (as `css.parse` produces) and returns a CSS string.
+*Required*\
+Type: `number`
 
-`options`:
+The maximum number of items before evicting the least recently used items.
 
-- indent: the string used to indent the output. Defaults to two spaces.
-- compress: omit comments and extraneous whitespace.
+#### maxAge
 
-### Example
+Type: `number`\
+Default: `Infinity`
 
-```js
-var ast = parse('body { font-size: 12px; }', { source: 'source.css' });
+The maximum number of milliseconds an item should remain in cache.
+By default maxAge will be Infinity, which means that items will never expire.
 
-var css = stringify(ast);
-```
+Lazy expiration happens upon the next `write` or `read` call.
 
-### Errors
+Individual expiration of an item can be specified by the `set(key, value, options)` method.
 
-Errors thrown during parsing have the following properties:
+#### onEviction
 
-- message: `String`. The full error message with the source position.
-- reason: `String`. The error message without position.
-- filename: `String` or `undefined`. The value of `options.source` if
-  passed to `css.parse`. Otherwise `undefined`.
-- line: `Integer`.
-- column: `Integer`.
-- source: `String`. The portion of code that couldn't be parsed.
+*Optional*\
+Type: `(key, value) => void`
 
-When parsing with the `silent` option, errors are listed in the
-`parsingErrors` property of the [`stylesheet`](#stylesheet) node instead
-of being thrown.
+Called right before an item is evicted from the cache.
 
-If you create any errors in plugins such as in
-[rework](https://github.com/reworkcss/rework), you __must__ set the same
-properties for consistency.
+Useful for side effects or for items like object URLs that need explicit cleanup (`revokeObjectURL`).
 
-## AST
+### Instance
 
-Interactively explore the AST with <http://iamdustan.com/reworkcss_ast_explorer/>.
+The instance is [`iterable`](https://developer.mozilla.org/en/docs/Web/JavaScript/Reference/Iteration_protocols) so you can use it directly in a [`for…of`](https://developer.mozilla.org/en/docs/Web/JavaScript/Reference/Statements/for...of) loop.
 
-### Common properties
+Both `key` and `value` can be of any type.
 
-All nodes have the following properties.
+#### .set(key, value, options?)
 
-#### position
+Set an item. Returns the instance.
 
-Information about the position in the source string that corresponds to
-the node.
+Individual expiration of an item can be specified with the `maxAge` option. If not specified, the global `maxAge` value will be used in case it is specified on the constructor, otherwise the item will never expire.
 
-`Object`:
+#### .get(key)
 
-- start: `Object`:
-  - line: `Number`.
-  - column: `Number`.
-- end: `Object`:
-  - line: `Number`.
-  - column: `Number`.
-- source: `String` or `undefined`. The value of `options.source` if passed to
-  `css.parse`. Otherwise `undefined`.
-- content: `String`. The full source string passed to `css.parse`.
+Get an item.
 
-The line and column numbers are 1-based: The first line is 1 and the first
-column of a line is 1 (not 0).
+#### .has(key)
 
-The `position` property lets you know from which source file the node comes
-from (if available), what that file contains, and what part of that file was
-parsed into the node.
+Check if an item exists.
 
-#### type
+#### .peek(key)
 
-`String`. The possible values are the ones listed in the Types section below.
+Get an item without marking it as recently used.
 
-#### parent
+#### .delete(key)
 
-A reference to the parent node, or `null` if the node has no parent.
+Delete an item.
 
-### Types
+Returns `true` if the item is removed or `false` if the item doesn't exist.
 
-The available values of `node.type` are listed below, as well as the available
-properties of each node (other than the common properties listed above.)
+#### .clear()
 
-#### stylesheet
+Delete all items.
 
-The root node returned by `css.parse`.
+#### .resize(maxSize)
 
-- stylesheet: `Object`:
-  - rules: `Array` of nodes with the types `rule`, `comment` and any of the
-    at-rule types.
-  - parsingErrors: `Array` of `Error`s. Errors collected during parsing when
-    option `silent` is true.
+Update the `maxSize`, discarding items as necessary. Insertion order is mostly preserved, though this is not a strong guarantee.
 
-#### rule
+Useful for on-the-fly tuning of cache sizes in live systems.
 
-- selectors: `Array` of `String`s. The list of selectors of the rule, split
-  on commas. Each selector is trimmed from whitespace and comments.
-- declarations: `Array` of nodes with the types `declaration` and `comment`.
+#### .keys()
 
-#### declaration
+Iterable for all the keys.
 
-- property: `String`. The property name, trimmed from whitespace and
-  comments. May not be empty.
-- value: `String`. The value of the property, trimmed from whitespace and
-  comments. Empty values are allowed.
+#### .values()
 
-#### comment
+Iterable for all the values.
 
-A rule-level or declaration-level comment. Comments inside selectors,
-properties and values etc. are lost.
+#### .entriesAscending()
 
-- comment: `String`. The part between the starting `/*` and the ending `*/`
-  of the comment, including whitespace.
+Iterable for all entries, starting with the oldest (ascending in recency).
 
-#### charset
+#### .entriesDescending()
 
-The `@charset` at-rule.
+Iterable for all entries, starting with the newest (descending in recency).
 
-- charset: `String`. The part following `@charset `.
+#### .size
 
-#### custom-media
+The stored item count.
 
-The `@custom-media` at-rule.
+---
 
-- name: `String`. The `--`-prefixed name.
-- media: `String`. The part following the name.
-
-#### document
-
-The `@document` at-rule.
-
-- document: `String`. The part following `@document `.
-- vendor: `String` or `undefined`. The vendor prefix in `@document`, or
-  `undefined` if there is none.
-- rules: `Array` of nodes with the types `rule`, `comment` and any of the
-  at-rule types.
-
-#### font-face
-
-The `@font-face` at-rule.
-
-- declarations: `Array` of nodes with the types `declaration` and `comment`.
-
-#### host
-
-The `@host` at-rule.
-
-- rules: `Array` of nodes with the types `rule`, `comment` and any of the
-  at-rule types.
-
-#### import
-
-The `@import` at-rule.
-
-- import: `String`. The part following `@import `.
-
-#### keyframes
-
-The `@keyframes` at-rule.
-
-- name: `String`. The name of the keyframes rule.
-- vendor: `String` or `undefined`. The vendor prefix in `@keyframes`, or
-  `undefined` if there is none.
-- keyframes: `Array` of nodes with the types `keyframe` and `comment`.
-
-#### keyframe
-
-- values: `Array` of `String`s. The list of “selectors” of the keyframe rule,
-  split on commas. Each “selector” is trimmed from whitespace.
-- declarations: `Array` of nodes with the types `declaration` and `comment`.
-
-#### media
-
-The `@media` at-rule.
-
-- media: `String`. The part following `@media `.
-- rules: `Array` of nodes with the types `rule`, `comment` and any of the
-  at-rule types.
-
-#### namespace
-
-The `@namespace` at-rule.
-
-- namespace: `String`. The part following `@namespace `.
-
-#### page
-
-The `@page` at-rule.
-
-- selectors: `Array` of `String`s. The list of selectors of the rule, split
-  on commas. Each selector is trimmed from whitespace and comments.
-- declarations: `Array` of nodes with the types `declaration` and `comment`.
-
-#### supports
-
-The `@supports` at-rule.
-
-- supports: `String`. The part following `@supports `.
-- rules: `Array` of nodes with the types `rule`, `comment` and any of the
-  at-rule types.
-
-### container
-
-The `@container` at-rule.
-
-- conatiner: `String`. The part following `@container `.
-- rules: `Array` of nodes with the types `rule`, `comment` and any of the
-  at-rule types.
-
-### layer
-
-The `@layer` at-rule.
-
-- layer: `String`. The part following `@layer `.
-- rules: `Array` of nodes with the types `rule`, `comment` and any of the
-  at-rule types. This may be null, if the rule did not contain any.
-
-### starting-style
-
-The `@starting-style` at-rule.
-
-- rules: `Array` of nodes with the types `rule`, `comment` and any of the
-  at-rule types.
-
-### Example
-
-CSS:
-
-```css
-body {
-  background: #eee;
-  color: #888;
-}
-```
-
-Parse tree:
-
-```json
-{
-  "type": "stylesheet",
-  "stylesheet": {
-    "rules": [
-      {
-        "type": "rule",
-        "selectors": [
-          "body"
-        ],
-        "declarations": [
-          {
-            "type": "declaration",
-            "property": "background",
-            "value": "#eee",
-            "position": {
-              "start": {
-                "line": 2,
-                "column": 3
-              },
-              "end": {
-                "line": 2,
-                "column": 19
-              }
-            }
-          },
-          {
-            "type": "declaration",
-            "property": "color",
-            "value": "#888",
-            "position": {
-              "start": {
-                "line": 3,
-                "column": 3
-              },
-              "end": {
-                "line": 3,
-                "column": 14
-              }
-            }
-          }
-        ],
-        "position": {
-          "start": {
-            "line": 1,
-            "column": 1
-          },
-          "end": {
-            "line": 4,
-            "column": 2
-          }
-        }
-      }
-    ]
-  }
-}
-```
-
-## License
-
-MIT
+<div align="center">
+	<b>
+		<a href="https://tidelift.com/subscription/pkg/npm-quick-lru?utm_source=npm-quick-lru&utm_medium=referral&utm_campaign=readme">Get professional support for this package with a Tidelift subscription</a>
+	</b>
+	<br>
+	<sub>
+		Tidelift helps make open source sustainable for maintainers while giving companies<br>assurances about security, maintenance, and licensing for their dependencies.
+	</sub>
+</div>
